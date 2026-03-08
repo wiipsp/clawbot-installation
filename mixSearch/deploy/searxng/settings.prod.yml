@@ -61,3 +61,28 @@ engines:
   #   shortcut: fa
   #   categories: [news]
   #   timeout: 8.0
+  # - name: reuters
+  #   engine: reuters
+  #   shortcut: reuters
+  #   categories: [news, general]
+  #   timeout: 8.0
+  # - name: bbc
+  #   engine: bbc
+  #   shortcut: bbc
+  #   categories: [news, general]
+  #   timeout: 8.0
+  # - name: techcrunch
+  #   engine: techcrunch
+  #   shortcut: tc
+  #   categories: [news, it, finance]
+  #   timeout: 8.0
+  # - name: arstechnica
+  #   engine: arstechnica
+  #   shortcut: ars
+  #   categories: [news, it]
+  #   timeout: 8.0
+  # - name: hackernews
+  #   engine: hackernews
+  #   shortcut: hn
+  #   categories: [news, it]
+  #   timeout: 8.0

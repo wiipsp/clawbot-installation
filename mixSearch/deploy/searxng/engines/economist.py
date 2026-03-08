@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """The Economist - International news, economics and policy analysis (RSS).
 
-Feed: https://www.economist.com/rss/the_economist_full_rss.xml
+Feed: https://www.economist.com/international/rss.xml
 Note: accessible from Tencent Cloud; may be blocked on mainland desktop networks.
 """
 
@@ -18,8 +18,9 @@ about = {
 categories = ["news", "finance"]
 paging = False
 timeout = 8.0
+proxies = {"http": "http://172.17.0.1:7890", "https": "http://172.17.0.1:7890"}
 
-feed_url = "https://www.economist.com/rss/the_economist_full_rss.xml"
+feed_url = "https://www.economist.com/international/rss.xml"
 
 
 def request(query, params):  # noqa: ARG001

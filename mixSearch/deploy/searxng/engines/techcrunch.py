@@ -1,26 +1,22 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Foreign Affairs - U.S. foreign policy and international relations analysis (RSS).
-
-Feed: https://www.foreignaffairs.com/rss.xml
-Note: accessible from Tencent Cloud; may be blocked on mainland desktop networks.
-"""
+"""TechCrunch RSS feed engine."""
 
 from searx.engines.rss_base import _parse_feed, _overlap  # noqa: F401
 from searx.result_types import EngineResults
 
 about = {
-    "website": "https://www.foreignaffairs.com",
+    "website": "https://techcrunch.com",
     "use_official_api": False,
     "require_api_key": False,
     "results": "RSS",
 }
 
-categories = ["news"]
+categories = ["news", "it", "finance"]
 paging = False
-timeout = 8.0
+timeout = 10.0
 proxies = {"http": "http://172.17.0.1:7890", "https": "http://172.17.0.1:7890"}
 
-feed_url = "https://www.foreignaffairs.com/rss.xml"
+feed_url = "https://techcrunch.com/feed/"
 
 
 def request(query, params):  # noqa: ARG001
@@ -49,5 +45,4 @@ def response(resp):
                 content=item["content"][:300] if item["content"] else "",
             )
         )
-
     return res

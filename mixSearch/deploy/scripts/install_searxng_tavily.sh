@@ -186,10 +186,16 @@ WEIGHT_ZH_LOCAL=0.60
 ALLOW_CIDR=${ALLOW_CIDR}
 "
 
-  # 动态生成 settings.yml
-  log "正在为 ${SEARCH_MODE} 模式生成 settings.yml..."
-  local gfw_engines="- bing\n- baidu\n- github\n- stackexchange\n- juejin\n- csdn\n- eastmoney\n- cls\n- 36kr\n- economist\n- foreignaffairs"
-  local global_engines="${gfw_engines}\n- google\n- wikipedia\n- duckduckgo\n- wolframalpha"
+  # 构建基础内置引擎
+  local gfw_engines="      - bing
+      - baidu
+      - github
+      - stackexchange"
+  local global_engines="${gfw_engines}
+      - google
+      - wikipedia
+      - duckduckgo
+      - wolframalpha"
   local selected_engines=""
   if [[ "${SEARCH_MODE}" == "global" ]]; then
     selected_engines="${global_engines}"
@@ -197,8 +203,100 @@ ALLOW_CIDR=${ALLOW_CIDR}
     selected_engines="${gfw_engines}"
   fi
 
+  # 构建国际 RSS 引擎 (仅 Global 模式启用)
+  local global_rss_engines=""
+  if [[ "${SEARCH_MODE}" == "global" ]]; then
+    global_rss_engines="
+  # --- International RSS engines (Global mode) ---
+  - name: economist
+    engine: economist
+    shortcut: eco
+    categories: [news, finance]
+    timeout: 8.0
+  - name: foreignaffairs
+    engine: foreignaffairs
+    shortcut: fa
+    categories: [news]
+    timeout: 8.0
+  - name: reuters
+    engine: reuters
+    shortcut: reuters
+    categories: [news, general]
+    timeout: 8.0
+  - name: bbc
+    engine: bbc
+    shortcut: bbc
+    categories: [news, general]
+    timeout: 8.0
+  - name: techcrunch
+    engine: techcrunch
+    shortcut: tc
+    categories: [news, it, finance]
+    timeout: 8.0
+  - name: arstechnica
+    engine: arstechnica
+    shortcut: ars
+    categories: [news, it]
+    timeout: 8.0
+  - name: hackernews
+    engine: hackernews
+    shortcut: hn
+    categories: [news, it]
+    timeout: 8.0"
+  fi
+
+  log "正在为 ${SEARCH_MODE} 模式生成 settings.yml..."
   local settings_content=""
   read -r -d '' settings_content << EOM
+use_default_settings:
+  engines:
+    keep_only:
+${selected_engines}
+
+general:
+  instance_name: "Hybrid Search Internal"
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "${secret}"
+  limiter: false
+search:
+  default_lang: "zh-CN"
+  formats:
+    - html
+    - json
+outgoing:
+  verify: false
+  request_timeout: 10.0
+valkey:
+  url: redis://redis:6379/0
+
+engines:
+  # --- Custom engines (not in SearXNG defaults) ---
+  - name: juejin
+    engine: juejin
+    shortcut: jj
+    categories: [general, it]
+    timeout: 4.0
+  - name: csdn
+    engine: csdn
+    shortcut: cs
+    categories: [general, it]
+    timeout: 5.0
+
+  # --- Finance & news engines (domestic, GFW-safe) ---
+  - name: sinafinance
+    engine: sinafinance
+    shortcut: sfn
+    categories: [finance, news, general]
+    timeout: 5.0
+  - name: 36kr
+    engine: kr36
+    shortcut: kr
+    categories: [news, it]
+    timeout: 6.0
+${global_rss_engines}
+EOM
 use_default_settings: true
 server:
   port: 8080
