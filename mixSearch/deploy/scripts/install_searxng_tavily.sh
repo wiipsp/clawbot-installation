@@ -7,6 +7,7 @@ INSTALL_DIR="${HOME}/hybrid-search"
 ALLOW_CIDR=""
 FORCE_OVERWRITE=0
 COMPOSE_VERSION="v2.23.0"
+SEARCH_MODE="gfw" # 新增：默认为 GFW 模式
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPLOY_DIR="${SCRIPT_DIR}/.."
 
@@ -20,6 +21,7 @@ Usage:
   sudo bash install_searxng_tavily.sh [options]
 
 Options:
+  --mode <mode>             搜索模式: gfw (默认) 或 global (需要外网访问)
   --searxng-port <port>     SearXNG 对外端口 (默认: 18999)
   --adapter-port <port>     Adapter 对外端口 (默认: 18000)
   --install-dir <path>      安装根目录 (默认: $HOME/hybrid-search)
@@ -33,6 +35,7 @@ EOF
 parse_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --mode) SEARCH_MODE="$2"; shift 2 ;;
       --searxng-port) SEARXNG_PORT="$2"; shift 2 ;;
       --adapter-port) ADAPTER_PORT="$2"; shift 2 ;;
       --install-dir) INSTALL_DIR="$2"; shift 2 ;;
@@ -43,6 +46,10 @@ parse_args() {
       *) err "未知参数: $1"; usage; exit 1 ;;
     esac
   done
+  if [[ "${SEARCH_MODE}" != "gfw" && "${SEARCH_MODE}" != "global" ]]; then
+    err "无效的模式: ${SEARCH_MODE}。请使用 'gfw' 或 'global'。"
+    exit 1
+  fi
 }
 
 ensure_root() {
@@ -114,31 +121,17 @@ install_docker() {
   else
     log "正在安装 Docker CE（腾讯云镜像）..."
     if has_cmd dnf; then
-      # Use Tencent Cloud mirror for Docker repo (GFW-friendly)
-      dnf config-manager --add-repo \
-        https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null || \
-      dnf config-manager --add-repo \
-        https://download.docker.com/linux/centos/docker-ce.repo || true
-      # Replace upstream URL with Tencent Cloud in repo file
-      sed -i 's|https://download.docker.com|https://mirrors.cloud.tencent.com/docker-ce|g' \
-        /etc/yum.repos.d/docker-ce.repo 2>/dev/null || true
+      dnf config-manager --add-repo https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null || dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
+      sed -i 's|https://download.docker.com|https://mirrors.cloud.tencent.com/docker-ce|g' /etc/yum.repos.d/docker-ce.repo 2>/dev/null || true
       dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
     else
-      yum-config-manager --add-repo \
-        https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null || \
-      yum-config-manager --add-repo \
-        https://download.docker.com/linux/centos/docker-ce.repo || true
+      yum-config-manager --add-repo https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo 2>/dev/null || yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
       yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
     fi
-    # Configure Docker daemon registry mirrors (Tencent Cloud)
     mkdir -p /etc/docker
     cat > /etc/docker/daemon.json << 'DAEMON_EOF'
 {
-  "registry-mirrors": [
-    "https://mirror.ccs.tencentyun.com",
-    "https://dockerhub.timeweb.cloud",
-    "https://docker.mirrors.ustc.edu.cn"
-  ],
+  "registry-mirrors": ["https://mirror.ccs.tencentyun.com", "https://dockerhub.timeweb.cloud", "https://docker.mirrors.ustc.edu.cn"],
   "log-driver": "json-file",
   "log-opts": { "max-size": "100m", "max-file": "3" }
 }
@@ -157,20 +150,13 @@ install_compose_if_needed() {
   local bin_path="${bin_dir}/docker-compose"
   [[ -x "${bin_path}" ]] && return
   mkdir -p "${bin_dir}"
-  # Try Tencent Cloud mirror first (GFW-friendly), fallback to GitHub
-  curl -fsSL \
-    "https://mirrors.cloud.tencent.com/docker-compose/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
-    -o "${bin_path}" 2>/dev/null || \
-  curl -fsSL \
-    "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
-    -o "${bin_path}"
+  curl -fsSL "https://mirrors.cloud.tencent.com/docker-compose/${COMPOSE_VERSION}/docker-compose-linux-x86_64" -o "${bin_path}" 2>/dev/null || curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" -o "${bin_path}"
   chmod +x "${bin_path}"
 }
 
 prepare_files() {
   mkdir -p "${INSTALL_DIR}/deploy" "${INSTALL_DIR}/searxng/engines" "${INSTALL_DIR}/adapter"
 
-  # .env is generated dynamically (contains runtime secrets and detected CIDR)
   local secret
   secret="$(openssl rand -hex 32)"
   write_if_needed "${INSTALL_DIR}/deploy/.env" "SEARXNG_PORT=${SEARXNG_PORT}
@@ -200,22 +186,56 @@ WEIGHT_ZH_LOCAL=0.60
 ALLOW_CIDR=${ALLOW_CIDR}
 "
 
-  # Static files — copy from repo source
-  # Use settings.prod.yml (server/GFW-aware config) instead of the dev settings.yml
-  if [[ -f "${DEPLOY_DIR}/searxng/settings.prod.yml" ]]; then
-    copy_if_needed "${DEPLOY_DIR}/searxng/settings.prod.yml"  "${INSTALL_DIR}/searxng/settings.yml"
+  # 动态生成 settings.yml
+  log "正在为 ${SEARCH_MODE} 模式生成 settings.yml..."
+  local gfw_engines="- bing\n- baidu\n- github\n- stackexchange\n- juejin\n- csdn\n- eastmoney\n- cls\n- 36kr\n- economist\n- foreignaffairs"
+  local global_engines="${gfw_engines}\n- google\n- wikipedia\n- duckduckgo\n- wolframalpha"
+  local selected_engines=""
+  if [[ "${SEARCH_MODE}" == "global" ]]; then
+    selected_engines="${global_engines}"
   else
-    copy_if_needed "${DEPLOY_DIR}/searxng/settings.yml"       "${INSTALL_DIR}/searxng/settings.yml"
+    selected_engines="${gfw_engines}"
   fi
-  if [[ -f "${DEPLOY_DIR}/searxng/limiter.toml" ]]; then
-    copy_if_needed "${DEPLOY_DIR}/searxng/limiter.toml"       "${INSTALL_DIR}/searxng/limiter.toml"
-  fi
-  copy_if_needed "${DEPLOY_DIR}/adapter/app.py"               "${INSTALL_DIR}/adapter/app.py"
-  copy_if_needed "${DEPLOY_DIR}/adapter/requirements.txt"     "${INSTALL_DIR}/adapter/requirements.txt"
-  copy_if_needed "${DEPLOY_DIR}/adapter/Dockerfile"           "${INSTALL_DIR}/adapter/Dockerfile"
-  copy_if_needed "${DEPLOY_DIR}/compose/docker-compose.yml"   "${INSTALL_DIR}/deploy/docker-compose.yml"
 
-  # Custom SearXNG engines
+  local settings_content=""
+  read -r -d '' settings_content << EOM
+use_default_settings: true
+server:
+  port: 8080
+  bind_address: "0.0.0.0"
+  secret_key: "${secret}"
+  limiter: false
+
+ui:
+  static_path: /usr/local/searxng/searxng-src/searxng/static
+  theme: simple
+  infinite_scroll: true
+
+search:
+  safe_search: 0
+  autocomplete: ""
+
+result_proxy:
+  url: http://127.0.0.1:8080
+  key: "${secret}"
+
+redis:
+  url: redis://redis:6379/0
+
+engines:
+${selected_engines}
+EOM
+  write_if_needed "${INSTALL_DIR}/searxng/settings.yml" "${settings_content}"
+
+  # 复制其他静态文件
+  if [[ -f "${DEPLOY_DIR}/searxng/limiter.toml" ]]; then
+    copy_if_needed "${DEPLOY_DIR}/searxng/limiter.toml" "${INSTALL_DIR}/searxng/limiter.toml"
+  fi
+  copy_if_needed "${DEPLOY_DIR}/adapter/app.py" "${INSTALL_DIR}/adapter/app.py"
+  copy_if_needed "${DEPLOY_DIR}/adapter/requirements.txt" "${INSTALL_DIR}/adapter/requirements.txt"
+  copy_if_needed "${DEPLOY_DIR}/adapter/Dockerfile" "${INSTALL_DIR}/adapter/Dockerfile"
+  copy_if_needed "${DEPLOY_DIR}/compose/docker-compose.yml" "${INSTALL_DIR}/deploy/docker-compose.yml"
+
   for engine_file in "${DEPLOY_DIR}/searxng/engines/"*.py; do
     [[ -f "${engine_file}" ]] || continue
     copy_if_needed "${engine_file}" "${INSTALL_DIR}/searxng/engines/$(basename "${engine_file}")"
