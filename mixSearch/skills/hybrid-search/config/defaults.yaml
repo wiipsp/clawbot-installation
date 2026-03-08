@@ -1,0 +1,75 @@
+# Skill Reference: Runtime Defaults
+#
+# This file documents the expected runtime behavior of the hybrid-search
+# service deployed via mixSearch/deploy/. It is NOT read at runtime —
+# the source of truth is deploy/.env (generated from deploy/.env.example).
+#
+# Purpose: help skill authors and maintainers understand the service's
+# default configuration without reading deploy code.
+
+mode: hybrid
+
+# ── Service Ports ──────────────────────────────────────────────────
+ports:
+  searxng: 18999          # SearXNG meta-search engine
+  adapter: 18000          # FastAPI adapter (agent entry point)
+
+# ── Timeouts & Retry ──────────────────────────────────────────────
+timeouts:
+  request_timeout_ms: 8000   # total request timeout
+  engine_timeout_ms: 2500    # per-engine connect/read timeout
+  retry_count: 1             # retries on failure
+  retry_backoff_ms: 250      # initial backoff (doubles each retry)
+
+# ── Retrieval ─────────────────────────────────────────────────────
+retrieval:
+  top_k_return: 10           # max results returned (API param: 1..20)
+  local_min_results: 3       # below this triggers Tavily fallback
+
+# ── Tavily Fallback ───────────────────────────────────────────────
+fallback:
+  use_tavily: true
+  triggers:
+    - local result count < local_min_results
+    - SearXNG request failure or timeout
+
+# ── Ranking Weights (EN / ZH) ────────────────────────────────────
+#
+# Score formula: 0.6 * relevance + 0.3 * lang_weight + base
+#   base = 0.15 (searxng, local-first) | 0.1 (tavily, fallback)
+#
+# Tokenization: Chinese bigram + unigram, English word tokens (2+ chars)
+ranking:
+  default:
+    weight_en: 0.65
+    weight_zh: 0.35
+  tech_query:
+    weight_en: 0.75
+    weight_zh: 0.25
+  local_query:
+    weight_en: 0.40
+    weight_zh: 0.60
+
+# ── Time Sensitivity ─────────────────────────────────────────────
+time_sensitivity:
+  auto_detect_keywords:
+    zh: ["新闻", "最新", "今天", "今日", "昨天", "本周", "近期", "发布", "更新", "公告", "热点", "实时"]
+    en: ["news", "latest", "today", "yesterday", "this week", "recent", "breaking", "release", "announce", "update"]
+  default_time_range_on_detect: "week"
+  valid_time_ranges: ["day", "week", "month", "year"]
+
+# ── Cache ─────────────────────────────────────────────────────────
+cache:
+  ttl_sec: 1800              # successful results (30 min)
+  news_ttl_sec: 300          # time-sensitive results (5 min)
+  negative_ttl_sec: 120      # empty / failed results
+
+# ── Rate Limiting ─────────────────────────────────────────────────
+limits:
+  rate_limit_rpm: 30         # requests per minute per client IP
+  burst: 10                  # burst allowance on top of RPM
+  max_query_len: 256         # characters
+
+# ── Network ───────────────────────────────────────────────────────
+network:
+  allow_cidr_default: 10.0.0.0/16   # firewall allowlist (VPC only)

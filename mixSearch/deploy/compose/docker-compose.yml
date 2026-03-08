@@ -1,0 +1,62 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: hybrid-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  searxng:
+    # Pin to a specific version to avoid unexpected breakage.
+    # Check https://hub.docker.com/r/searxng/searxng/tags for updates.
+    image: searxng/searxng:2026.2.28-a2108ce2e
+    container_name: hybrid-searxng
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      - BASE_URL=${SEARXNG_BASE_URL}
+      - SEARXNG_SECRET=${INSTANCE_SECRET}
+      - SEARXNG_LIMITER=false
+    volumes:
+      - ../searxng:/etc/searxng:rw
+      - ../searxng/engines/juejin.py:/usr/local/searxng/searx/engines/juejin.py:ro
+      - ../searxng/engines/csdn.py:/usr/local/searxng/searx/engines/csdn.py:ro
+      - ../searxng/engines/sinafinance.py:/usr/local/searxng/searx/engines/sinafinance.py:ro
+      - ../searxng/engines/rss_base.py:/usr/local/searxng/searx/engines/rss_base.py:ro
+      - ../searxng/engines/kr36.py:/usr/local/searxng/searx/engines/kr36.py:ro
+      # International RSS engines — only mount if behind a proxy:
+      # - ../searxng/engines/economist.py:/usr/local/searxng/searx/engines/economist.py:ro
+      # - ../searxng/engines/foreignaffairs.py:/usr/local/searxng/searx/engines/foreignaffairs.py:ro
+    ports:
+      - "${SEARXNG_PORT}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  adapter:
+    build:
+      context: ../adapter
+      dockerfile: Dockerfile
+    container_name: hybrid-adapter
+    restart: unless-stopped
+    depends_on:
+      searxng:
+        condition: service_healthy
+    env_file: [.env]
+    ports:
+      - "${ADAPTER_PORT}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

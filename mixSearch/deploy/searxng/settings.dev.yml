@@ -1,0 +1,57 @@
+# ── 本地开发配置（macOS / Docker Desktop）────────────────────────────────────
+# 用法: settings.yml 软链接或直接使用此文件
+# 特点: 不过滤引擎（无 GFW）、禁用 SSL 验证（Docker 容器内证书不完整）
+use_default_settings: true
+
+general:
+  instance_name: "Hybrid Search Internal (dev)"
+server:
+  limiter: false
+search:
+  default_lang: "zh-CN"
+  formats:
+    - html
+    - json
+outgoing:
+  verify: false          # Docker Desktop 容器内 CA 不完整，禁用 SSL 验证
+  request_timeout: 10.0
+valkey:
+  url: redis://redis:6379/0
+
+engines:
+  # --- Custom engines (not in SearXNG defaults) ---
+  - name: juejin
+    engine: juejin
+    shortcut: jj
+    categories: [general, it]
+    timeout: 4.0
+  - name: csdn
+    engine: csdn
+    shortcut: cs
+    categories: [general, it]
+    timeout: 5.0
+
+  # --- Finance & news engines (domestic, GFW-safe) ---
+  - name: sinafinance
+    engine: sinafinance
+    shortcut: sfn
+    categories: [finance, news, general]
+    timeout: 5.0
+  - name: 36kr
+    engine: kr36
+    shortcut: kr
+    categories: [news, it]
+    timeout: 6.0
+
+  # --- International RSS engines (disabled: require non-GFW network) ---
+  # Uncomment if deploying behind a proxy or in a non-GFW environment.
+  # - name: economist
+  #   engine: economist
+  #   shortcut: eco
+  #   categories: [news, finance]
+  #   timeout: 8.0
+  # - name: foreignaffairs
+  #   engine: foreignaffairs
+  #   shortcut: fa
+  #   categories: [news]
+  #   timeout: 8.0

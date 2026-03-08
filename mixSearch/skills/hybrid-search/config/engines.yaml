@@ -1,0 +1,93 @@
+# Skill Reference: SearXNG Engine Configuration
+#
+# This file documents which search engines are enabled in the deployed
+# SearXNG instance. It is NOT read at runtime — the actual engine list
+# is in searxng/settings.yml on the server.
+#
+# Purpose: help skill authors understand what sources are available,
+# so they can set expectations about result coverage.
+#
+# Deployment target: Tencent Cloud (mainland China, behind GFW).
+# Only engines reachable without a proxy are enabled by default.
+
+# ── Active Engines ────────────────────────────────────────────────
+# These are enabled by default in both dev and prod settings.yml.
+
+active_engines:
+
+  # General web search
+  - id: baidu
+    type: general_zh
+    note: Primary Chinese web results (百度)
+
+  - id: bing
+    type: general_en
+    note: Primary English web results; accessible from mainland China
+
+  # Code & technical Q&A
+  - id: github
+    type: code
+    note: Repository and code search
+
+  - id: stackexchange
+    type: qa
+    note: Programming Q&A (Stack Overflow, Super User, etc.)
+
+  # Chinese developer communities
+  - id: juejin
+    type: tech_zh
+    note: 掘金 — Chinese developer community; custom JSON API engine
+
+  - id: csdn
+    type: tech_zh
+    note: CSDN — Chinese developer blog platform; custom HTML scraping engine
+
+  # Finance & news (domestic, GFW-safe)
+  - id: sinafinance
+    type: finance_zh
+    note: >
+      新浪财经 — pulls latest 50 articles from Sina Finance rolling news API,
+      filters by keyword overlap. Custom JSON engine.
+
+  - id: 36kr
+    type: news_zh
+    note: >
+      36氪 — pulls latest 30 articles from 36Kr RSS feed,
+      filters by keyword overlap. Best for tech/business news.
+
+# ── Disabled Engines (GFW-blocked or JS-rendered) ─────────────────
+# Engine files exist in engines/ but are commented out in settings.yml.
+# Uncomment in settings.yml and docker-compose.yml to enable if you
+# have a proxy-enabled deployment.
+
+disabled_engines:
+
+  - id: economist
+    reason: GFW-blocked
+    note: >
+      The Economist RSS feed (economist.com) — blocked in mainland China.
+      Engine file: engines/economist.py
+
+  - id: foreignaffairs
+    reason: GFW-blocked
+    note: >
+      Foreign Affairs RSS feed (foreignaffairs.com) — blocked in mainland China.
+      Engine file: engines/foreignaffairs.py
+
+  - id: cls
+    reason: JS-rendered
+    note: >
+      财联社 (cls.cn) — entire site requires JavaScript to render.
+      HTML scraping returns no results. Engine file: engines/cls.py
+
+# ── Permanently Blocked (do not enable without proxy) ─────────────
+blocked_engines:
+  - google       # blocked by GFW
+  - duckduckgo   # blocked by GFW
+  - startpage    # blocked by GFW
+  - brave        # blocked by GFW
+  - wikipedia    # blocked by GFW (zh.wikipedia.org)
+  - youtube      # blocked by GFW
+  - twitter      # blocked by GFW
+  - reddit       # blocked / rate limited
+  - facebook     # blocked by GFW
