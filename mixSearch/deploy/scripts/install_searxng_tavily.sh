@@ -159,6 +159,21 @@ prepare_files() {
 
   local secret
   secret="$(openssl rand -hex 32)"
+
+  # 根据模式构建引擎列表
+  local base_engines="bing,baidu,github,stackexchange,juejin,csdn,sinafinance,36kr"
+  local international_engines="reuters,bbc,techcrunch,arstechnica,hackernews,economist,foreignaffairs"
+  local searxng_engines="${base_engines}"
+  local searxng_news_engines="baidu,bing news,sinafinance,36kr"
+
+  if [[ "${SEARCH_MODE}" == "global" ]]; then
+    searxng_engines="${base_engines},${international_engines}"
+    searxng_news_engines="baidu,bing news,${international_engines},sinafinance,36kr"
+    log "Global 模式：启用国际引擎 (${international_engines})"
+  else
+    log "GFW 模式：仅使用国内可用引擎"
+  fi
+
   write_if_needed "${INSTALL_DIR}/deploy/.env" "SEARXNG_PORT=${SEARXNG_PORT}
 ADAPTER_PORT=${ADAPTER_PORT}
 SEARXNG_BASE_URL=http://127.0.0.1:${SEARXNG_PORT}/
@@ -176,7 +191,8 @@ NEGATIVE_CACHE_TTL_SEC=120
 RATE_LIMIT_RPM=30
 BURST=10
 ENABLE_TAVILY=true
-SEARXNG_ENGINES=bing,baidu,github,stackexchange,juejin,csdn,eastmoney,cls,36kr,economist,foreignaffairs
+SEARXNG_ENGINES=${searxng_engines}
+SEARXNG_NEWS_ENGINES=${searxng_news_engines}
 WEIGHT_EN_DEFAULT=0.65
 WEIGHT_ZH_DEFAULT=0.35
 WEIGHT_EN_TECH=0.75

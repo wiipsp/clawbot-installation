@@ -26,10 +26,11 @@
 - 适合大陆服务器直接部署
 
 **包含的引擎**：
-- 通用搜索：Bing, Baidu, DuckDuckGo
+- 通用搜索：Bing, Baidu
 - 技术社区：GitHub, StackExchange, 掘金, CSDN
-- 财经新闻：东方财富, 财联社, 36氪
-- 国际资讯：The Economist, Foreign Affairs
+- 财经新闻：新浪财经, 36氪
+
+> 注：国际资讯引擎（Reuters, BBC, TechCrunch 等）在 Global 模式下启用
 
 ### 2. 全球模式 (`--mode global`)
 
@@ -41,8 +42,8 @@
 - 适合需要全球视野的应用场景
 
 **额外包含的引擎**：
-- 国际搜索：Google, Wikipedia, WolframAlpha
-- 国际新闻：Reuters, BBC News, TechCrunch, Ars Technica, Hacker News
+- 国际搜索：Google, Wikipedia, DuckDuckGo, WolframAlpha
+- 国际新闻：Reuters, BBC, TechCrunch, Ars Technica, Hacker News, The Economist, Foreign Affairs
 
 **要求**：
 - ⚠️ **服务器本身必须具备外网访问能力**（例如，通过 Clash 等代理工具）
@@ -169,6 +170,11 @@ sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh --mode global --for
       csdn.py                       ← 自定义引擎
       reuters.py                    ← 国际新闻引擎（global 模式）
       bbc.py                        ← 国际新闻引擎（global 模式）
+      techcrunch.py                 ← 国际新闻引擎（global 模式）
+      arstechnica.py                ← 国际新闻引擎（global 模式）
+      hackernews.py                 ← 国际新闻引擎（global 模式）
+      economist.py                  ← 国际新闻引擎（global 模式）
+      foreignaffairs.py             ← 国际新闻引擎（global 模式）
       ...
 ```
 
@@ -186,6 +192,8 @@ sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh --mode global --for
 | `ALLOW_CIDR` | 自动检测 | VPC 网段不对时手动指定 |
 | `LOCAL_MIN_RESULTS` | `3` | 想更积极用 Tavily 可改 `4-5` |
 | `REQUEST_TIMEOUT_MS` | `8000` | 网络慢时可升到 `10000-12000` |
+| `SEARXNG_ENGINES` | 根据模式 | 自定义搜索引擎列表 |
+| `SEARXNG_NEWS_ENGINES` | 根据模式 | 新闻类查询使用的引擎 |
 | `SEARXNG_PORT` | `18999` | 端口冲突时再改 |
 | `ADAPTER_PORT` | `18000` | 端口冲突时再改 |
 
@@ -211,6 +219,27 @@ docker compose up -d --build
 | `ENABLE_TAVILY` | `true` | 是否启用 Tavily 兜底 |
 | `LOCAL_MIN_RESULTS` | `3` | 本地结果少于此值触发 Tavily |
 | `TAVILY_API_KEY` | 空 | Tavily 密钥 |
+
+### 搜索引擎配置
+
+| 变量 | 说明 |
+|---|---|---|
+| `SEARXNG_ENGINES` | 通用搜索使用的引擎列表（逗号分隔） |
+| `SEARXNG_NEWS_ENGINES` | 新闻类查询（`topic=news`）使用的引擎 |
+
+**GFW 模式默认值**：
+```
+SEARXNG_ENGINES=bing,baidu,github,stackexchange,juejin,csdn,sinafinance,36kr
+SEARXNG_NEWS_ENGINES=baidu,bing news,sinafinance,36kr
+```
+
+**Global 模式默认值**（额外包含国际引擎）：
+```
+SEARXNG_ENGINES=...,reuters,bbc,techcrunch,arstechnica,hackernews,economist,foreignaffairs
+SEARXNG_NEWS_ENGINES=...,reuters,bbc,techcrunch,arstechnica,hackernews,economist,foreignaffairs
+```
+
+> 注：安装脚本会根据 `--mode` 自动设置这两个变量。如需手动调整，编辑 `.env` 后重启服务即可。
 
 ### 超时与重试
 

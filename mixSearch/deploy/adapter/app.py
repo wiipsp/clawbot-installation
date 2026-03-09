@@ -39,14 +39,21 @@ RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "30"))
 BURST = int(os.getenv("BURST", "10"))
 MAX_QUERY_LEN = 256
 TAVILY_URL = "https://api.tavily.com/search"
+# International RSS engines (require proxy in GFW environment)
+# Keep in sync with searxng/settings.yml international engines
+# NOTE: In GFW environment, set SEARXNG_ENGINES env var to exclude these
+INTERNATIONAL_ENGINES = "reuters,bbc,techcrunch,arstechnica,hackernews,economist,foreignaffairs"
+
+# Default engines (GFW-safe). Override via SEARXNG_ENGINES env var for global mode.
 SEARXNG_ENGINES = os.getenv(
     "SEARXNG_ENGINES",
     "bing,baidu,github,stackexchange,juejin,csdn,sinafinance,36kr",
 )
-# Engines used when topic=news or time_sensitive=True — prioritize sources with publishedDate support
+# Engines used when topic=news or time_sensitive=True
+# Override via SEARXNG_NEWS_ENGINES env var for global mode
 SEARXNG_NEWS_ENGINES = os.getenv(
     "SEARXNG_NEWS_ENGINES",
-    "baidu,bing news,reuters,sinafinance,36kr",
+    "baidu,bing news,sinafinance,36kr",
 )
 
 # RSS feeds fetched in parallel when topic=news; each entry: (name, url, category)
