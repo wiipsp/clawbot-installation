@@ -63,11 +63,15 @@ _RSS_FEEDS: List[Tuple[str, str, str]] = [
     ("huxiu",     "https://www.huxiu.com/rss/0.xml",                "tech"),
     ("ycombinator", "https://news.ycombinator.com/rss",             "tech"),
     ("bbc_tech",  "https://feeds.bbci.co.uk/news/technology/rss.xml", "international"),
+    ("bbc_world", "https://feeds.bbci.co.uk/news/world/rss.xml",      "international"),
+    ("ap_world",  "https://rsshub.app/apnews/world-news",             "international"),
 ]
 # Max items to extract per RSS feed per request
 _RSS_MAX_PER_FEED = int(os.getenv("RSS_MAX_PER_FEED", "10"))
 # RSS results cache TTL (seconds) — shorter than news search cache
 _RSS_CACHE_TTL = int(os.getenv("RSS_CACHE_TTL_SEC", "180"))
+# Proxy for international RSS feeds (GFW-blocked). e.g. http://172.17.0.1:7890
+_RSS_PROXY_URL = os.getenv("RSS_PROXY_URL", "http://172.17.0.1:7890")
 
 # Baidu result quality control:
 #   BAIDU_SCORE_PENALTY: multiplier applied to baidu results' base score (0~1, lower = weaker)
@@ -130,7 +134,7 @@ def is_tech_query(text: str) -> bool:
 
 def is_local_query(text: str) -> bool:
     low = text.lower()
-    keywords = ["政策", "本地", "国内", "新闻", "招聘", "城市", "天气",
+    keywords = ["政策", "本地", "国内新闻", "招聘", "城市", "天气",
                 "股票", "基金", "债券", "a股", "沪深", "港股", "财经",
                 "经济", "上市", "涨跌", "行情", "公告", "研报"]
     return any(k in low for k in keywords)
@@ -206,6 +210,16 @@ ZH_EN_DICT: Dict[str, str] = {
     "对比": "comparison",
     "区别": "difference",
     "最新": "latest",
+    "新闻": "news",
+    "国际": "international",
+    "头条": "headline",
+    "今日": "today",
+    "今天": "today",
+    "全球": "global",
+    "世界": "world",
+    "突发": "breaking",
+    "热点": "trending",
+    "报道": "report",
     "发布": "release",
     "更新": "update",
     "教程": "tutorial",
@@ -986,11 +1000,22 @@ async def _fetch_rss_feeds(
     max_per_feed: int = _RSS_MAX_PER_FEED,
 ) -> List[Dict[str, Any]]:
     """Fetch all RSS feeds in parallel, return keyword-filtered results sorted by date."""
+    # International feeds need a proxy; create a separate client for them
+    proxy_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(10.0, connect=5.0),
+        verify=False,
+        proxies={"http://": _RSS_PROXY_URL, "https://": _RSS_PROXY_URL} if _RSS_PROXY_URL else None,
+    ) if _RSS_PROXY_URL else client
+
     tasks = [
-        _fetch_single_rss(client, name, url, max_per_feed)
-        for name, url, _ in _RSS_FEEDS
+        _fetch_single_rss(proxy_client if category == "international" else client, name, url, max_per_feed)
+        for name, url, category in _RSS_FEEDS
     ]
     feed_results = await asyncio.gather(*tasks)
+    # Close proxy client if it's a separate instance
+    if proxy_client is not client:
+        await proxy_client.aclose()
+
     all_items: List[Dict[str, Any]] = []
     for items in feed_results:
         all_items.extend(items)
