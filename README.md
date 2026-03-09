@@ -24,9 +24,9 @@ clawbot/
 │   ├── README.md                 # 部署与使用文档
 │   └── install_openclaw.sh       # 安装 / 升级 / 卸载
 │
-└── mixSearch/                    ← 混合搜索服务（供 coPaw / OpenClaw 调用）
+└── hybrid-search/                ← 混合搜索服务（供 coPaw / OpenClaw 调用）
     ├── deploy/
-    │   ├── README.md             ← mixSearch 详细部署文档
+    │   ├── README.md             ← hybrid-search 详细部署文档
     │   ├── scripts/
     │   │   └── install_searxng_tavily.sh  # 一键部署脚本
     │   ├── adapter/              # FastAPI 搜索网关（源码）
@@ -182,7 +182,7 @@ sudo bash base/06_clash.sh inject-openclaw
 
 ---
 
-### mixSearch — 混合搜索服务
+### hybrid-search — 混合搜索服务
 
 SearXNG（本地元搜索）+ Tavily（兜底）+ FastAPI Adapter，通过 Docker Compose 运行。
 
@@ -197,7 +197,7 @@ SearXNG（本地元搜索）+ Tavily（兜底）+ FastAPI Adapter，通过 Docke
 ```bash
 # 安装
 sudo bash base/setup_all.sh --with-docker
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh \
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh \
   --searxng-port 18999 --adapter-port 18000
 
 # 配置 Tavily Key（可选，用于搜索结果兜底）
@@ -210,13 +210,13 @@ curl -X POST http://127.0.0.1:18000/search \
   -d '{"query":"今日科技新闻","max_results":5}'
 ```
 
-详细文档：[mixSearch/deploy/README.md](mixSearch/deploy/README.md)
+详细文档：[hybrid-search/deploy/README.md](hybrid-search/deploy/README.md)
 
 ---
 
 ## 快速开始（典型场景）
 
-### 场景 A：全新服务器安装 CoPaw + mixSearch
+### 场景 A：全新服务器安装 CoPaw + hybrid-search
 
 ```bash
 # 1. 基础环境
@@ -227,14 +227,14 @@ sudo bash coPaw/install_copaw.sh
 /root/copaw-manage.sh init
 /root/copaw-manage.sh start
 
-# 3. mixSearch
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh
+# 3. hybrid-search
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
 
 # 4. 检查
 bash base/check_all.sh --venv /root/copaw-venv
 ```
 
-### 场景 B：全新服务器安装 OpenClaw + mixSearch
+### 场景 B：全新服务器安装 OpenClaw + hybrid-search
 
 ```bash
 # 1. 基础环境（含 Clash 代理解决地区限制）
@@ -248,18 +248,18 @@ sudo bash openClaw/install_openclaw.sh
 sudo bash base/06_clash.sh update-sub '订阅链接'
 sudo bash base/06_clash.sh inject-openclaw
 
-# 4. mixSearch
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh
+# 4. hybrid-search
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
 
 # 5. 检查
 bash base/check_all.sh
 ```
 
-### 场景 C：只部署 mixSearch
+### 场景 C：只部署 hybrid-search
 
 ```bash
 sudo bash base/setup_all.sh --with-docker
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
 bash base/check_all.sh
 ```
 
@@ -293,7 +293,7 @@ sudo bash coPaw/install_copaw.sh remove
 # OpenClaw（含 npm 全局包、systemd 服务、管理脚本）
 sudo bash openClaw/install_openclaw.sh remove
 
-# mixSearch（停止并删除容器、运行时目录）
+# hybrid-search（停止并删除容器、运行时目录）
 cd /root/hybrid-search/deploy && docker compose down
 rm -rf /root/hybrid-search /root/hybrid-search-src
 ```

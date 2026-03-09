@@ -123,7 +123,7 @@ if command -v docker >/dev/null 2>&1; then
         warn "daemon.json  未配置镜像加速"
     fi
 else
-    info "docker  未安装 (非必须，mixSearch 需要)"
+    info "docker  未安装 (非必须，hybrid-search 需要)"
 fi
 
 # =========================================

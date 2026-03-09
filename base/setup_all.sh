@@ -16,7 +16,7 @@
 # Full example for OpenClaw server (with proxy):
 #   sudo bash setup_all.sh --node-v22 --with-clash
 #
-# Full example for mixSearch server:
+# Full example for hybrid-search server:
 #   sudo bash setup_all.sh --with-docker
 
 set -e
@@ -117,7 +117,7 @@ echo ""
 echo "下一步："
 echo "  安装 CoPaw:      bash ../coPaw/install_copaw.sh"
 echo "  安装 OpenClaw:   bash ../openClaw/install_openclaw.sh"
-echo "  安装 mixSearch:  bash ../mixSearch/deploy/scripts/install_searxng_tavily.sh"
+echo "  安装 hybrid-search:  bash ../hybrid-search/deploy/scripts/install_searxng_tavily.sh"
 echo ""
 echo "快速一键命令参考："
 echo "  # CoPaw 服务器"
@@ -134,6 +134,6 @@ echo "  # OpenClaw 服务器（无代理）"
 echo "  sudo bash setup_all.sh --node-v22"
 echo "  sudo bash ../openClaw/install_openclaw.sh"
 echo ""
-echo "  # mixSearch 服务器"
+echo "  # hybrid-search 服务器"
 echo "  sudo bash setup_all.sh --with-docker"
-echo "  sudo bash ../mixSearch/deploy/scripts/install_searxng_tavily.sh"
+echo "  sudo bash ../hybrid-search/deploy/scripts/install_searxng_tavily.sh"
