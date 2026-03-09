@@ -77,14 +77,14 @@ sudo bash base/setup_all.sh --with-docker
 #### GFW 模式（默认，推荐大陆服务器）
 
 ```bash
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh \
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh \
   --searxng-port 18999 --adapter-port 18000
 ```
 
 #### 全球模式（服务器需能访问外网）
 
 ```bash
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh \
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh \
   --mode global \
   --searxng-port 18999 --adapter-port 18000
 ```
@@ -146,7 +146,7 @@ curl -fsS -X POST "http://127.0.0.1:18000/search" \
 
 ```bash
 # 切换到 global 模式
-sudo bash mixSearch/deploy/scripts/install_searxng_tavily.sh --mode global --force
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh --mode global --force
 ```
 
 ---
@@ -302,7 +302,7 @@ docker logs --tail 50 hybrid-searxng
 
 ```bash
 # 1. 重新上传源文件
-scp -r mixSearch/deploy root@<server-ip>:/root/hybrid-search-src/
+scp -r hybrid-search/deploy root@<server-ip>:/root/hybrid-search-src/
 
 # 2. 强制覆盖并重启
 ssh root@<server-ip>

@@ -1,7 +1,7 @@
 # Skill Reference: Runtime Defaults
 #
 # This file documents the expected runtime behavior of the hybrid-search
-# service deployed via mixSearch/deploy/. It is NOT read at runtime —
+# service deployed via hybrid-search/deploy/. It is NOT read at runtime —
 # the source of truth is deploy/.env (generated from deploy/.env.example).
 #
 # Purpose: help skill authors and maintainers understand the service's

@@ -6,7 +6,7 @@ a self-hosted SearXNG instance with Tavily API fallback.
 ## Prerequisites
 
 The search service must be deployed **before** registering this skill.
-See `mixSearch/deploy/README.md` for deployment instructions.
+See `hybrid-search/deploy/README.md` for deployment instructions.
 
 After deployment you should have:
 - SearXNG running on port `18999`
@@ -60,7 +60,7 @@ skills/hybrid-search/
 {
   skills: {
     "hybrid-search": {
-      path: "mixSearch/skills/hybrid-search/SKILL.md",
+      path: "hybrid-search/skills/hybrid-search/SKILL.md",
       env: {
         SEARXNG_BASE_URL: "http://127.0.0.1:18999/",
         ADAPTER_BASE_URL: "http://127.0.0.1:18000/",
