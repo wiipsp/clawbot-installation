@@ -22,7 +22,10 @@ clawbot/
 │
 ├── openClaw/                     ← OpenClaw AI 助手服务
 │   ├── README.md                 # 部署与使用文档
-│   └── install_openclaw.sh       # 安装 / 升级 / 卸载
+│   ├── install_openclaw.sh       # npm 安装 / 升级 / 卸载
+│   ├── install_openclaw_docker.sh # Docker 安装 / 升级 / 卸载
+│   └── docker/
+│       └── docker-compose.yml    # Docker Compose 配置
 │
 └── hybrid-search/                ← 混合搜索服务（供 coPaw / OpenClaw 调用）
     ├── deploy/
@@ -156,7 +159,9 @@ sudo bash coPaw/install_copaw.sh
 
 基于 [OpenClaw](https://github.com/openclaw/openclaw)（2026.3.2），通过 Gateway（WebSocket `18789`）运行，支持 Telegram、WhatsApp、Slack 等多渠道接入。
 
-依赖：Node.js 22+
+支持两种安装方式：**npm 原生安装** 和 **Docker 容器安装**。
+
+#### npm 安装（依赖：Node.js 22+）
 
 ```bash
 # 安装（无代理）
@@ -168,11 +173,32 @@ sudo bash base/setup_all.sh --node-v22 --with-clash
 sudo bash openClaw/install_openclaw.sh
 sudo bash base/06_clash.sh update-sub '订阅链接'
 sudo bash base/06_clash.sh inject-openclaw
+```
 
+#### Docker 安装（依赖：Docker CE）
+
+```bash
+# 安装（直接拉取镜像，仅需 Docker）
+sudo bash base/04_docker.sh
+sudo bash openClaw/install_openclaw_docker.sh
+
+# 安装（GFW 环境，通过 Clash 代理拉取 ghcr.io 镜像）
+sudo bash base/04_docker.sh
+sudo bash base/06_clash.sh
+sudo bash base/06_clash.sh update-sub '订阅链接'
+sudo bash openClaw/install_openclaw_docker.sh --with-proxy
+
+# 注入 AI 代理到容器
+/root/openclaw-manage.sh inject-proxy
+```
+
+#### 通用操作
+
+```bash
 # 首次初始化（配置 AI provider、渠道等）
 /root/openclaw-manage.sh onboard
 
-# 管理
+# 管理（两种安装方式命令相同）
 /root/openclaw-manage.sh {start|stop|restart|status|health|logs|onboard|profile|upgrade}
 ```
 
@@ -234,13 +260,13 @@ sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
 bash base/check_all.sh --venv /root/copaw-venv
 ```
 
-### 场景 B：全新服务器安装 OpenClaw + hybrid-search
+### 场景 B：全新服务器安装 OpenClaw（npm）+ hybrid-search
 
 ```bash
 # 1. 基础环境（含 Clash 代理解决地区限制）
 sudo bash base/setup_all.sh --node-v22 --with-docker --with-clash
 
-# 2. OpenClaw
+# 2. OpenClaw (npm)
 sudo bash openClaw/install_openclaw.sh
 /root/openclaw-manage.sh onboard
 
@@ -252,6 +278,30 @@ sudo bash base/06_clash.sh inject-openclaw
 sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
 
 # 5. 检查
+bash base/check_all.sh
+```
+
+### 场景 B2：全新服务器安装 OpenClaw（Docker）+ hybrid-search
+
+```bash
+# 1. Docker + Clash 代理
+sudo bash base/04_docker.sh
+sudo bash base/06_clash.sh
+
+# 2. 配置 Clash 订阅
+sudo bash base/06_clash.sh update-sub '订阅链接'
+
+# 3. OpenClaw (Docker, 通过 Clash 拉取 ghcr.io 镜像)
+sudo bash openClaw/install_openclaw_docker.sh --with-proxy
+/root/openclaw-manage.sh onboard
+
+# 4. 注入 AI 代理到容器
+/root/openclaw-manage.sh inject-proxy
+
+# 5. hybrid-search
+sudo bash hybrid-search/deploy/scripts/install_searxng_tavily.sh
+
+# 6. 检查
 bash base/check_all.sh
 ```
 
@@ -275,9 +325,13 @@ bash base/check_all.sh
 bash base/check_all.sh --venv /root/copaw-venv
 
 # 查看各服务状态
-systemctl status copaw
-systemctl status openclaw
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+systemctl status copaw                                              # CoPaw (systemd)
+systemctl status openclaw                                           # OpenClaw npm (systemd)
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"     # Docker 容器
+
+# OpenClaw Docker 专用检查
+/root/openclaw-manage.sh health   # healthz + readyz
+/root/openclaw-manage.sh test     # 完整环境信息
 ```
 
 ---
@@ -290,8 +344,11 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 # CoPaw（含 venv、systemd 服务、管理脚本）
 sudo bash coPaw/install_copaw.sh remove
 
-# OpenClaw（含 npm 全局包、systemd 服务、管理脚本）
+# OpenClaw — npm 安装方式（含 npm 全局包、systemd 服务、管理脚本）
 sudo bash openClaw/install_openclaw.sh remove
+
+# OpenClaw — Docker 安装方式（含容器、运行时目录、管理脚本）
+sudo bash openClaw/install_openclaw_docker.sh remove
 
 # hybrid-search（停止并删除容器、运行时目录）
 cd /root/hybrid-search/deploy && docker compose down
